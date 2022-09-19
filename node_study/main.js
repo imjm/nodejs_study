@@ -1,3 +1,22 @@
+var express = require('express')
+var app = express()
+const port = 3000
+// app.get('/', (req, res) => {
+//   res.send('Hello World!')
+// })
+
+app.get('/', function(req, res) {
+ return res.send('/');
+});
+
+app.get('/page', function(req, res) {
+  return res.send('/page');
+ });
+
+app.listen(port, function() {
+  console.log(`Example app listening on port ${port}`)
+});
+/*
 var http = require('http');
 var fs = require('fs');
 var url = require('url');
@@ -140,6 +159,6 @@ var app = http.createServer(function(request,response){
       response.writeHead(404);
       response.end('Not found');
     }
-
 });
-app.listen(3000); 
+app.listen(3000);
+*/

@@ -1,17 +1,85 @@
-var express = require('express')
-var app = express()
+var express = require('express');
+var app = express();
 const port = 3000
+var fs = require('fs');
+var tp = require('./lib/template.js');
+var qs = require('querystring');
+var path = require('path');
+var sanitizeHtml = require('sanitize-html');
 // app.get('/', (req, res) => {
 //   res.send('Hello World!')
 // })
 
-app.get('/', function(req, res) {
- return res.send('/');
+app.get('/', function(request, response) {
+  fs.readdir('./data', function(error, filelist){
+    var title = 'Welcome';
+    var description = 'Hello, Node.js';
+    var list = tp.list(filelist);
+    var html = tp.html(title, list, 
+      `<h2>${title}</h2>${description}`, 
+      '<a href="/create">create</a>');
+  response.send(html);
+  });    
 });
 
-app.get('/page', function(req, res) {
-  return res.send('/page');
+app.get('/page/:pageId', function(request, response) {
+  fs.readdir('./data', function(error, filelist){
+    var filteredId = path.parse(request.params.pageId).base;
+    fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
+      var title = request.params.pageId;
+      var sanitizedTitle = sanitizeHtml(title);
+      var sanitizedDescription = sanitizeHtml(description, {
+        allowedTags:['h1']
+      });
+      var list = tp.list(filelist);
+      var html = tp.html(title, list,
+         `<h2>${sanitizedTitle}</h2>${sanitizedDescription}`,
+         `<a href="/create">create</a>
+          <a href="/update?id=${sanitizedTitle}">update</a>
+          <form action="delete_process" method="post">
+            <input type="hidden" name="id" value="${sanitizedTitle}">
+            <input type="submit" value="delete">
+          </form>
+          `);
+    response.send(html);
+    });
+  });
  });
+
+ app.get('/create', function(request, response){
+  fs.readdir('./data', function(error, filelist){
+    var title = 'WEB - create';
+    var list = tp.list(filelist);
+    var html = tp.html(title, list, `
+    <form action="/create_process" method="post">
+    <p><input type="text" name="title" placeholder="title"></p>
+    <p>
+        <textarea name="description" placeholder="description"></textarea>
+    </p>
+    <p>
+        <input type="submit">
+    </p>
+    </form>
+    `,``);
+  response.send(html);
+  });
+ });
+
+ app.post('/create_process', function(request, response){
+  var body = ``;
+      request.on('data', function(data){
+        body = body + data;
+      });
+      request.on('end', function(){
+        var post = qs.parse(body);
+        var title = post.title;
+        var description = post.description;
+        fs.writeFile(`data/${title}`, description, 'utf8', function(err){
+          response.writeHead(302, {Location: `/?id=${title}`});
+          response.end();
+        })
+      });
+ })
 
 app.listen(port, function() {
   console.log(`Example app listening on port ${port}`)
@@ -33,73 +101,14 @@ var app = http.createServer(function(request,response){
     
     if(pathname === '/') {
       if(queryData.id === undefined) {
-        fs.readdir('./data', function(error, filelist){
-          var title = 'Welcome';
-          var description = 'Hello, Node.js';
-          var list = tp.list(filelist);
-          var html = tp.html(title, list, 
-            `<h2>${title}</h2>${description}`, 
-            '<a href="/create">create</a>');
-        response.writeHead(200);
-        response.end(html);
-        })    
       } else {
-        fs.readdir('./data', function(error, filelist){
-          var filteredId = path.parse(queryData.id).base;
-          fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
-            var title = queryData.id;
-            var sanitizedTitle = sanitizeHtml(title);
-            var sanitizedDescription = sanitizeHtml(description, {
-              allowedTags:['h1']
-            });
-            var list = tp.list(filelist);
-            var html = tp.html(title, list,
-               `<h2>${sanitizedTitle}</h2>${sanitizedDescription}`,
-               `<a href="/create">create</a>
-                <a href="/update?id=${sanitizedTitle}">update</a>
-                <form action="delete_process" method="post">
-                  <input type="hidden" name="id" value="${sanitizedTitle}">
-                  <input type="submit" value="delete">
-                </form>
-                `);
-          response.writeHead(200);
-          response.end(html);
-          });
-        });
+        
       }
     } else if(pathname == '/create') {
-      fs.readdir('./data', function(error, filelist){
-        var title = 'WEB - create';
-        var list = tp.list(filelist);
-        var html = tp.html(title, list, `
-        <form action="/create_process" method="post">
-        <p><input type="text" name="title" placeholder="title"></p>
-        <p>
-            <textarea name="description" placeholder="description"></textarea>
-        </p>
-        <p>
-            <input type="submit">
-        </p>
-        </form>
-        `,``);
-      response.writeHead(200);
-      response.end(html);
-      });
+      
     }
     else if(pathname == '/create_process') {
-      var body = ``;
-      request.on('data', function(data){
-        body = body + data;
-      });
-      request.on('end', function(){
-        var post = qs.parse(body);
-        var title = post.title;
-        var description = post.description;
-        fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-          response.writeHead(302, {Location: `/?id=${title}`});
-          response.end();
-        })
-      });
+      
     } else if(pathname == '/update'){
       fs.readdir('./data', function(error, filelist){
         var filteredId = path.parse(queryData.id).base;

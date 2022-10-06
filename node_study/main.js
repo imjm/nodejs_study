@@ -6,9 +6,14 @@ var tp = require('./lib/template.js');
 var qs = require('querystring');
 var path = require('path');
 var sanitizeHtml = require('sanitize-html');
+var compression = require('compression');
 // app.get('/', (req, res) => {
 //   res.send('Hello World!')
 // })
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(compression());
 
 app.get('/', function(request, response) {
   fs.readdir('./data', function(error, filelist){
@@ -66,22 +71,16 @@ app.get('/page/:pageId', function(request, response) {
  });
 
  app.post('/update_process', function(request, response){
-  var body = ``;
-      request.on('data', function(data){
-        body = body + data;
-      });
-      request.on('end', function(){
-        var post = qs.parse(body);
-        var id = post.id;
-        var title = post.title;
-        var description = post.description;
-        fs.rename(`data/${id}`, `data/${title}`, function(error){
-          fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-            response.redirect(`/?id=${title}`);
-        })
-      })
-    }); 
- });
+    var post = request.body;
+    var id = post.id;
+    var title = post.title;
+    var description = post.description;
+    fs.rename(`data/${id}`, `data/${title}`, function(error){
+      fs.writeFile(`data/${title}`, description, 'utf8', function(err){
+        response.redirect(`/?id=${title}`);
+    })
+  });
+});
  app.get('/update/:pageId',function(request, response){
   fs.readdir('./data', function(error, filelist){
     var filteredId = path.parse(request.params.pageId).base;
@@ -107,35 +106,25 @@ app.get('/page/:pageId', function(request, response) {
   });
  });
  app.post('/create_process', function(request, response){
-  var body = ``;
-      request.on('data', function(data){
-        body = body + data;
-      });
-      request.on('end', function(){
-        var post = qs.parse(body);
-        var title = post.title;
-        var description = post.description;
-        fs.writeFile(`data/${title}`, description, 'utf8', function(err){
-          response.writeHead(302, {Location: `/?id=${title}`});
-          response.end();
-        })
-      });
+    request.body
+    var post = request.body;
+    var title = post.title;
+    var description = post.description;
+    fs.writeFile(`data/${title}`, description, 'utf8', function(err){
+      response.writeHead(302, {Location: `/?id=${title}`});
+      response.end();
+    })
  });
 
  app.post('/delete_process', function(request, response){
-  var body = ``;
-        request.on('data', function(data){
-          body = body + data;
-        });
-        request.on('end', function(){
-          var post = qs.parse(body);
-          var id = post.id;
-          var filteredId = path.parse(id).base;
-          fs.unlink(`data/${filteredId}`, function(err){
-            response.redirect('/');
-          });
-        });
- });
+    var post = request.body;
+    var id = post.id;
+    var filteredId = path.parse(id).base;
+    fs.unlink(`data/${filteredId}`, function(err){
+      response.redirect('/');
+    });
+  });
+
 app.listen(port, function() {
   console.log(`Example app listening on port ${port}`)
 });

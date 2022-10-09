@@ -11,10 +11,11 @@ var compression = require('compression');
 //   res.send('Hello World!')
 // })
 
+app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(compression());
-app.use(function(request, response, next){
+app.get('*',function(request, response, next){
   fs.readdir('./data', function(error, filelist){
     request.list = filelist;
     next();
@@ -26,13 +27,13 @@ app.get('/', function(request, response) {
   var description = 'Hello, Node.js';
   var list = tp.list(request.list);
   var html = tp.html(title, list, 
-    `<h2>${title}</h2>${description}`, 
+    `<h2>${title}</h2>${description}
+    <img src="/images/hello.jpg" style="width:300px; display:block; margin-top:10px;">`, 
     '<a href="/create">create</a>');
   response.send(html);
 });
 
 app.get('/page/:pageId', function(request, response) {
-  
   var filteredId = path.parse(request.params.pageId).base;
   fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
     var title = request.params.pageId;
@@ -55,9 +56,8 @@ app.get('/page/:pageId', function(request, response) {
   });
 
  app.get('/create', function(request, response){
-  fs.readdir('./data', function(error, filelist){
     var title = 'WEB - create';
-    var list = tp.list(filelist);
+    var list = tp.list(request.list);
     var html = tp.html(title, list, `
     <form action="/create_process" method="post">
     <p><input type="text" name="title" placeholder="title"></p>
@@ -70,7 +70,6 @@ app.get('/page/:pageId', function(request, response) {
     </form>
     `,``);
   response.send(html);
-  });
  });
 
  app.post('/update_process', function(request, response){
@@ -85,11 +84,10 @@ app.get('/page/:pageId', function(request, response) {
   });
 });
  app.get('/update/:pageId',function(request, response){
-  fs.readdir('./data', function(error, filelist){
     var filteredId = path.parse(request.params.pageId).base;
     fs.readFile(`data/${filteredId}`, 'utf8', function(err, description){
       var title = request.params.pageId;
-      var list = tp.list(filelist);
+      var list = tp.list(request.list);
       var html = tp.html(title, list,
          `
          <form action="/update_process" method="post">
@@ -106,7 +104,6 @@ app.get('/page/:pageId', function(request, response) {
          `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`);
     response.send(html);
     });
-  });
  });
  app.post('/create_process', function(request, response){
     request.body
